@@ -1,5 +1,6 @@
 import pyxel
 
+SCENE_GAMEOVER = 2
 
 NUM_STARS = 100
 STAR_COLOR_HIGH = 12
@@ -30,6 +31,22 @@ GAMEOVER = 2
 blasts = []
 bullets = []
 enemies = []
+
+
+def update_entities(entities):
+    for entity in entities:
+        entity.update()
+
+
+def cleanup_entities(entities):
+    for i in range(len(entities) -1, -1 ,-1):
+        if not entities[i].is_alive:
+            del entities[i]
+
+
+def load_bgm(msc, filename, snd1, snd2, snd3):
+    pyxel.music[msc].set([snd1], [snd2], [snd3])
+
 
 class Background:
     def __init__(self):
@@ -131,6 +148,7 @@ class Enemy:
         pyxel.btn(self.x, self.y, 0, 8, 0, self.w * self.dir,
         self.h, 0)  
 
+
 class Blast:
     def __init__(self, x, y):
         self.x = x
@@ -148,6 +166,7 @@ class Blast:
         pyxel.circ(self.x, self.y, self.radius, BLAST_COLOR_IN)
         pyxel.circb(self.x, self.y, self.radius, BLAST_COLOR_OUT)
 
+
 class App:
     def __init__(self):
         pyxel.init(120, 160, title="Pyxel shooter")
@@ -162,8 +181,6 @@ class App:
         self.blackground =Background()
         self.player = Player(pyxel.width / 2,pyxel.height - 20)
         pyxel.run(self.update, self.draw)
-        pass
-
 
     def update(self):
         if pyxel.btn(pyxel.KEY_Q):
@@ -176,18 +193,57 @@ class App:
             self.update_play_scene()
         elif self.scene ==  GAMEOVER:
             self.update_gameover_scene()
-        pass
-
     
     def update_title_scene(self):
         if pyxel.btnp(pyxel.KEY_RETURN) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_X):
             self.scene = SCENE_PLAY
             pyxel.playm(1, loop=True)
-        pass
-
 
     def update_play_scene(self):
-        pass
+        if pyxel.frame_count % 6 == 0:
+            Enemy(pyxel.rndi(0, pyxel.width - ENEMY_WIDTH), 0)
+
+        for enemy in enemies:
+            for bullet in bullets:
+                if (
+                    enemy.x + enemy.w > bullet.x
+                    and bullet.x + bullet.w > enemy.x
+                    and enemy.y + enemy.h > bullet.y
+                    and bullet.y + bullet.h > enemy.y
+                ):
+                    enemy.is_alive = False
+                    bullet.is_alive = False
+                    blasts.append(
+                        Blast(enemy.x + ENEMY_WIDTH / 2, enemy.y + ENEMY_HEIGHT / 2)
+                    )
+                    pyxel.play(3, 1)
+                    self.score += 10
+        
+        for enemy in enemies:
+            if (
+                self.player.x + self.player.w > enemy.x
+                and enemy.x + enemy.w > self.player.x
+                and self.player.y + self.player.h > enemy.y
+                and enemy.y + enemy.h > self.player.y
+            ):
+                enemy.is_alive = False
+                blasts.append(
+                    Blast(
+                        self.player.x + Player_WIDTH / 2,
+                        self.player.y + Player_HEIGHT / 2,
+                    )
+                )
+                pyxel.play(3, 1)
+                self.scene = SCENE_GAMEOVER
+                pyxel.playm(0, loop=True)
+
+        self.player.update()
+        update_entities(bullets)
+        update_entities(enemies)
+        update_entities(blasts)
+        cleanup_entities(enemies)
+        cleanup_entities(bullets)
+        cleanup_entities(blasts)
 
 
     def update_gameover_scene(self):
