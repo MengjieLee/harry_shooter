@@ -28,6 +28,7 @@ SCENE_TITLE = 0
 SCENE_PLAY = 1
 GAMEOVER = 2
 
+
 blasts = []
 bullets = []
 enemies = []
@@ -37,6 +38,9 @@ def update_entities(entities):
     for entity in entities:
         entity.update()
 
+def draw_entities(entities):
+    for entity in entities:
+        entity.draw()
 
 def cleanup_entities(entities):
     for i in range(len(entities) -1, -1 ,-1):
@@ -265,15 +269,34 @@ class App:
             pyxel.playm(1, loop=True)
 
     def draw(self):
-        pass
+        pyxel.cls(0)
+        self.background.draw()
+        if self.scene == SCENE_TITLE:
+            self.draw_title_scene()
+        elif self.scene == SCENE_PLAY:
+            self.draw_play_scene()
+        elif self.scene == SCENE_GAMEOVER:
+            self.draw_gameover_scene()
+        pyxel.text(39, 4, f"SCORE {self.score:5}", 7)
+        
     def draw_title_scene(self):
-        pass
+         pyxel.text(35,66, "Pyxel Shooter",pyxel.frame_count % 16)
+         pyxel.text(31, 126, " - PRESS ENTRE -",13)
+
     def draw_play_scene(self):
-        pass
+        self.player.draw()
+        draw_entities(bullets)
+        draw_entities(enemies)
+
+
+        draw_entities(blasts)
+
     def draw_play_gameover_scene(self):
-        pass
-
-
-    pass
+        draw_entities(bullets)
+        draw_entities(enemies)
+        draw_entities(blasts)
+        pyxel.text(43, 66, "GANE OVER",13)
+        pyxel.text(31, 126, " - PRESS ENTRE -",13)
 
 App()
+
