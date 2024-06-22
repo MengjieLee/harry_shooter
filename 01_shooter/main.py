@@ -49,7 +49,15 @@ def cleanup_entities(entities):
 
 
 def load_bgm(msc, filename, snd1, snd2, snd3):
-    pyxel.music[msc].set([snd1], [snd2], [snd3])
+    # pyxel.music[msc].set([snd1], [snd2], [snd3])
+    import json
+
+    with open(filename, "rt") as file:
+        bgm = json.loads(file.read())
+        pyxel.sounds[snd1].set(*bgm[0])
+        pyxel.sounds[snd2].set(*bgm[1])
+        pyxel.sounds[snd3].set(*bgm[2])
+        pyxel.musics[msc].set([snd1], [snd2], [snd3], [])
 
 
 class Background:
@@ -91,12 +99,12 @@ class Player:
             self.x += Player_SPEED
         if pyxel.btn(pyxel.KEY_UP) or pyxel.btn(pyxel.GAMEPAD1_BUTTON_DPAD_UP):
             self.y -= Player_SPEED
-        if pyxel.btn(pyxel.KEY_LEFT) or pyxel.btn(pyxel.GAMEPAD1_BUTTON_DPAD_LEFT):
-            self.y -= Player_SPEED
+        if pyxel.btn(pyxel.KEY_DOWN) or pyxel.btn(pyxel.GAMEPAD1_BUTTON_DPAD_LEFT):
+            self.y += Player_SPEED
         self.x = max(self.x, 0)
-        self.x = max(self.x, pyxel.width -self.w)
+        self.x = min(self.x, pyxel.width -self.w)
         self.y = max(self.y, 0)
-        self.y = max(self.y, pyxel.width -self.h)
+        self.y = min(self.y, pyxel.height -self.h)
         if pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A):
             Buttet(
                 self.x + (Player_WIDTH - BULLET_WIDTH) / 2,
@@ -117,7 +125,7 @@ class Buttet:
         self.is_alive = True
         bullets.append(self)
 
-    def updat(self):
+    def update(self):
         self.y -= BULLET_SPEED
         if self.y + self.h - 1 < 0:
             self.is_alive = False
@@ -138,7 +146,7 @@ class Enemy:
         enemies.append(self)
 
     def update(self):
-        if (pyxel.frame_count + self.offset) % 60 < 30:
+        if (pyxel.frame_count + self.timer_offset) % 60 < 30:
             self.x += ENEMY_SPEED
             self.dir = 1
         else:
@@ -149,8 +157,7 @@ class Enemy:
             self.is_alive = False
 
     def draw(self):
-        pyxel.btn(self.x, self.y, 0, 8, 0, self.w * self.dir,
-        self.h, 0)  
+        pyxel.blt(self.x, self.y, 0, 8, 0, self.w * self.dir, self.h, 0)  
 
 
 class Blast:
@@ -174,15 +181,41 @@ class Blast:
 class App:
     def __init__(self):
         pyxel.init(120, 160, title="Pyxel shooter")
-        pyxel.images[0].set()
-        pyxel.images[0].set()
-        pyxel.images[0].set()
-        pyxel.images[1].set()
-        load_bgm(0,"assets/bgm_title.json, 2, 3, 4")
-        load_bgm(1,"assets/bgm_play.json, 5, 6, 7")
+        pyxel.images[0].set(
+            0,
+            0,
+            [
+                "00c00c00",
+                "0c7007c0",
+                "0c7007c0",
+                "c703b07c",
+                "77033077",
+                "785cc587",
+                "85c77c58",
+                "0c0880c0",
+            ],
+        )
+        pyxel.images[0].set(
+            8,
+            0,
+            [
+                "00088000",
+                "00ee1200",
+                "08e2b180",
+                "02882820",
+                "00222200",
+                "00012280",
+                "08208008",
+                "80008000",
+            ],
+        )
+        pyxel.sounds[0].set("a3a2c1a1", "p", "7", "s", 5)
+        pyxel.sounds[1].set("a3a2c2c2", "n", "7742", "s", 10)
+        load_bgm(0,"assets/bgm_title.json", 2, 3, 4)
+        load_bgm(1,"assets/bgm_play.json", 5, 6, 7)
         self.scene = SCENE_TITLE
         self.score = 0
-        self.blackground =Background()
+        self.background =Background()
         self.player = Player(pyxel.width / 2,pyxel.height - 20)
         pyxel.run(self.update, self.draw)
 
@@ -190,7 +223,7 @@ class App:
         if pyxel.btn(pyxel.KEY_Q):
             pyxel.quit()
 
-        self.blackground.update()
+        self.background.update()
         if self.scene == SCENE_TITLE:
             self.update_title_scene()
         elif self.scene ==  SCENE_PLAY:
@@ -261,7 +294,7 @@ class App:
         if pyxel.btnp(pyxel.KEY_RETURN) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_X):
             self.scene = SCENE_PLAY
             self.player.x = pyxel.width / 2
-            self.player.y = pyxel.height / 20
+            self.player.y = pyxel.height - 20
             self.score = 0
             enemies.clear()
             bullets.clear()
@@ -291,7 +324,7 @@ class App:
 
         draw_entities(blasts)
 
-    def draw_play_gameover_scene(self):
+    def draw_gameover_scene(self):
         draw_entities(bullets)
         draw_entities(enemies)
         draw_entities(blasts)
